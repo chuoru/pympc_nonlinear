@@ -1,2 +1,2 @@
-# pympc_nonlinear
-Python package for using nonlinear MPC for trajectory generation and path tracking 
+# trajectory_generation_packages
+Python package for using nonlinear optimization for trajectory generation
