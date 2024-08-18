@@ -291,9 +291,9 @@ WARN_LOGFILE           =
 
 
 
-INPUT                  = ./models
-                         ./simulators
-                         ./trajectory_generators
+INPUT                  = ./models  \
+                         ./simulators  \
+                         ./trajectory_generators  \
                          ./README.md
 
 

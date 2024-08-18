@@ -9,7 +9,6 @@
 
 # Standard library
 import numpy as np
-import matplotlib.pyplot as plt
 
 # External library
 import casadi as cs
@@ -27,7 +26,6 @@ class SimpleP2P:
     # ==================================================================================================
     # PUBLIC METHODS
     # ==================================================================================================
-
     def __init__(self, model, T, dt):
         """! The constructor of the class.
         @param model: The model of the robot.
@@ -57,8 +55,6 @@ class SimpleP2P:
 
         self._weight_values = [10, 0.1, 1, 200, 2]
 
-        self._define_problem()
-
     def generate_trajectory(self, initial_position, final_position,
                             is_plot=True):
         """! Generate the trajectory for the robot.
@@ -66,6 +62,8 @@ class SimpleP2P:
         @param final_position: The final position of the robot.
         @param is_plot: The flag to plot the solution.
         """
+        self._define_problem()
+
         self._optimizer.set_value(self._weights, self._weight_values)
 
         self._optimizer.set_value(self._final_position, final_position)
@@ -88,38 +86,6 @@ class SimpleP2P:
     # ==================================================================================================
     # PRIVATE METHODS
     # ==================================================================================================
-    def _stage_cost(self, x, u, final_position):
-        """! The stage cost of the optimization problem.
-        @param x: The state of the robot.
-        @param u: The input of the robot.
-        @param final_position: The final position of the robot.
-        """
-        position_error = x - final_position
-
-        cost = cs.dot(self._weights[:3], cs.power(position_error, 2))
-
-        cost += self._weights[3] * cs.dot(u, u)
-
-        return cost
-
-    def _terminal_cost(self, x, final_position):
-        """! The terminal cost of the optimization problem.
-        @param x: The state of the robot.
-        @param final_position: The final position of the robot.
-        """
-        position_error = x - final_position
-
-        cost = self._weights[4] * cs.dot(position_error, position_error)
-
-        return cost
-
-    def _constraints(self, u):
-        """! The constraints of the optimization problem.
-        @param u: The input of the robot.
-        """
-        self._optimizer.subject_to(u[0]**2 < self._model.velocity_max**2)
-
-        self._optimizer.subject_to(u[1]**2 < self._model.velocity_max**2)
 
     def _define_problem(self):
         """! Define the optimization problem.
@@ -150,30 +116,37 @@ class SimpleP2P:
 
         self._optimizer.minimize(cost)
 
-    def _plot(self, solution, u):
-        """! The function to plot the solution.
-        @param solution: The solution of the optimization problem.
+    def _stage_cost(self, x, u, final_position):
+        """! The stage cost of the optimization problem. 
+        The distance between \f$(x_1,y_1)\f$ and \f$(x_2,y_2)\f$ is 
+        \f$\sqrt{(x_2-x_1)^2+(y_2-y_1)^2}\f$.
+        @param x: The state of the robot.
+        @param u: The input of the robot.
+        @param final_position: The final position of the robot.
         """
-        ux = solution.value(u)[:][0]
+        position_error = x - final_position
 
-        uy = solution.value(u)[:][1]
+        cost = cs.dot(self._weights[:3], cs.power(position_error, 2))
 
-        time = np.arange(0,  self._dt * self._N,  self._dt)
+        cost += self._weights[3] * cs.dot(u, u)
 
-        plt.subplot(2, 1, 1)
+        return cost
 
-        plt.plot(time, ux, '-o')
+    def _terminal_cost(self, x, final_position):
+        """! The terminal cost of the optimization problem.
+        @param x: The state of the robot.
+        @param final_position: The final position of the robot.
+        """
+        position_error = x - final_position
 
-        plt.xlabel('time')
+        cost = self._weights[4] * cs.dot(position_error, position_error)
 
-        plt.ylabel('ux')
+        return cost
 
-        plt.subplot(2, 1, 2)
+    def _constraints(self, u):
+        """! The constraints of the optimization problem.
+        @param u: The input of the robot.
+        """
+        self._optimizer.subject_to(u[0]**2 < self._model.velocity_max**2)
 
-        plt.plot(time, uy, '-o')
-
-        plt.xlabel('time')
-
-        plt.ylabel('uy')
-
-        plt.show()
+        self._optimizer.subject_to(u[1]**2 < self._model.velocity_max**2)
