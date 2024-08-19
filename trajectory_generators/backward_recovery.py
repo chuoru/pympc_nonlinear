@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 ##
-# @file navigation.py
+# @file backward_recovery.py
 #
 # @brief Provide the navigation program for the robot.
 #
@@ -13,19 +13,14 @@ import numpy as np
 # External library
 import casadi as cs
 
-# Internal library
 
-
-class SimpleP2P:
+class BackwardRecovery:
     """! The class to generate the trajectory for the robot.
 
     The class provides the method to generate the trajectory for the robot.
-    In this case, the robot moves from the initial position to the final
-    position.
+    In this case, the robot recoveries from collision position to reference
+    path.
     """
-    # ==================================================================================================
-    # PUBLIC METHODS
-    # ==================================================================================================
     def __init__(self, model, T, dt):
         """! The constructor of the class.
         @param model: The model of the robot.
@@ -37,7 +32,7 @@ class SimpleP2P:
         - self._N: The number of time steps.
         - self._dt: The time step of the optimization problem.
         - self._weights: The weights of the optimization problem.
-        [q, qtheta, r, qN, qthetaN]
+        [q, qtheta, qgamma, r, qN, qthetaN]
         """
         self._model = model
 
@@ -53,16 +48,15 @@ class SimpleP2P:
 
         self._dt = dt
 
-        self._weight_values = [10, 0.1, 1, 200, 2]
+        self._weight_values = [10, 0.1, 0.1, 1, 200, 2]
 
         self._debug = True
 
-    def generate_trajectory(self, initial_position, final_position,
-                            is_plot=True):
+    def generate_trajectory(self, initial_position, final_position):
         """! Generate the trajectory for the robot.
         @param initial_position: The initial position of the robot.
         @param final_position: The final position of the robot.
-        @param is_plot: The flag to plot the solution.
+        @return The input of the robot.
         """
         self._define_problem()
 
@@ -88,7 +82,6 @@ class SimpleP2P:
     # ==================================================================================================
     # PRIVATE METHODS
     # ==================================================================================================
-
     def _define_problem(self):
         """! Define the optimization problem.
         """
@@ -128,9 +121,10 @@ class SimpleP2P:
         """
         position_error = x - final_position
 
-        cost = cs.dot(self._weights[:3], cs.power(position_error, 2))
+        cost = cs.dot(self._weights[:self._model.nx],
+                      cs.power(position_error, 2))
 
-        cost += self._weights[3] * cs.dot(u, u)
+        cost += self._weights[self._model.nx+1] * cs.dot(u, u)
 
         return cost
 
@@ -152,3 +146,4 @@ class SimpleP2P:
         self._optimizer.subject_to(u[0]**2 < self._model.velocity_max**2)
 
         self._optimizer.subject_to(u[1]**2 < self._model.velocity_max**2)
+

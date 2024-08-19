@@ -9,9 +9,6 @@
 #
 # Copyright (c) 2024 System Engineering Laboratory.  All rights reserved.
 
-# Standard library
-import numpy as np
-
 # External library
 import casadi.casadi as cs
 
@@ -41,9 +38,13 @@ class TrailerTractor:
         @param input The input of the robot.
         @param dt The time step of the robot.
         """
-        theta, gamma = state
+        theta = state[2]
 
-        v, w = input
+        gamma = state[3]
+
+        v = input[0]
+
+        w = input[1]
 
         dxdt = v * cs.cos(theta) * cs.cos(
             gamma) - self.length_back * cs.cos(gamma) * w
@@ -56,7 +57,7 @@ class TrailerTractor:
 
         dgammatdt = dthetadt - w
 
-        dfdt = np.array([dxdt, dydt, dthetadt, dgammatdt])
+        dfdt = cs.vertcat(dxdt, dydt, dthetadt, dgammatdt)
 
         next_state = state + dfdt * dt
 
